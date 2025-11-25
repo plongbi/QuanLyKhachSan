@@ -8,8 +8,10 @@ import repository.IKhachHangRepository;
 import repository.KhachHangRepository;
 import repository.INhanVienRepository;
 import repository.NhanVienRepository;
-import repository.IPhongRepository; // Import repo phòng
-import repository.PhongRepository;   // Import repo phòng
+import repository.IPhongRepository;
+import repository.PhongRepository;
+import repository.IDichVuRepository;
+import repository.DichVuRepository;
 
 public class MainForm extends JFrame {
 
@@ -23,15 +25,15 @@ public class MainForm extends JFrame {
     private IKhachHangRepository khachHangRepo;
     private INhanVienRepository nhanVienRepo;
     private IPhongRepository phongRepo;
+    private IDichVuRepository dichVuRepo;
 
     public MainForm() {
         // Khởi tạo các repository
         khachHangRepo = new KhachHangRepository();
         nhanVienRepo = new NhanVienRepository();
-
-        // Khởi tạo PhongRepository
-        // (Phiên bản tối ưu dùng LEFT JOIN không cần truyền repo khách hàng vào)
         phongRepo = new PhongRepository();
+        ((PhongRepository) phongRepo).khoiTaoPhongChoMenu();
+        dichVuRepo = new DichVuRepository();
 
         // --- Cài đặt JFrame ---
         setTitle("Hệ thống Quản lý Khách sạn");
@@ -54,14 +56,17 @@ public class MainForm extends JFrame {
         JPanel nhanVienTab = new NhanVienPanel(nhanVienRepo);
         tabbedPane.addTab("  Quản lý Nhân Viên  ", nhanVienTab);
 
-        // --- Tab Phòng ---
-        // Đưa PhongPanel mới vào, inject cả 2 repo cần thiết
-        JPanel phongTab = new PhongPanel(phongRepo, khachHangRepo);
-        tabbedPane.addTab("  Quản lý Phòng  ", phongTab);
+        // --- Tab Dịch Vụ ---
+        JPanel dichVuTab = new DichVuPanel(dichVuRepo);
+        tabbedPane.addTab("  Quản lý Dịch Vụ  ", null, dichVuTab, "Danh mục dịch vụ khách sạn");
 
-        // --- Tab Thanh Toán (Tạm thời) ---
-        JPanel thanhToanTab = createPlaceholderPanel("Chức năng Quản lý Thanh Toán");
-        tabbedPane.addTab("  Thanh toán & Doanh thu  ", thanhToanTab);
+        // --- Tab Phòng ---
+        JPanel phongTab = new PhongPanel(phongRepo, khachHangRepo, dichVuRepo);
+        tabbedPane.addTab("  Quản lý Phòng  ", null, phongTab, "Sơ đồ phòng và đặt phòng");
+
+        // --- Tab Thanh Toán  ---
+        JPanel thanhToanTab = new ThanhToanPanel(phongRepo, dichVuRepo);
+        tabbedPane.addTab("  Thanh Toán   ", null, thanhToanTab, "Lập hóa đơn và thanh toán");
 
         add(tabbedPane, BorderLayout.CENTER);
     }
