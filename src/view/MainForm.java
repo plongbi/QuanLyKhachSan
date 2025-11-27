@@ -68,6 +68,9 @@ public class MainForm extends JFrame {
         JPanel thanhToanTab = new ThanhToanPanel(phongRepo, dichVuRepo);
         tabbedPane.addTab("  Thanh Toán   ", null, thanhToanTab, "Lập hóa đơn và thanh toán");
 
+        // --- Tab Doanh Thu  ---
+        JPanel thongKeTab = new DoanhThuPanel();
+        tabbedPane.addTab("  Doanh Thu  ", null, thongKeTab, "Xem doanh thu theo tuần/năm");
         add(tabbedPane, BorderLayout.CENTER);
     }
 
@@ -87,8 +90,30 @@ public class MainForm extends JFrame {
 
     public static void main(String[] args) {
         // Chạy giao diện
+//        SwingUtilities.invokeLater(() -> {
+//            new MainForm().setVisible(true);
+//        });
+
+
         SwingUtilities.invokeLater(() -> {
-            new MainForm().setVisible(true);
+            LoginView loginView = new LoginView();
+
+            // Xử lý sự kiện khi nhấn nút Đăng Nhập
+            loginView.setLoginHandler((username, password, remember) -> {
+                String passStr = new String(password);
+
+                // --- Logic kiểm tra đăng nhập đơn giản (Hardcode demo) ---
+                // Bạn có thể thay bằng gọi NhanVienRepository để check DB
+                if (username.equals("admin") && passStr.equals("1234")) {
+                    // Đăng nhập thành công
+                    loginView.dispose(); // Đóng màn hình login
+                    new MainForm().setVisible(true); // Mở màn hình chính
+                } else {
+                    loginView.showError("Sai tên đăng nhập hoặc mật khẩu!");
+                }
+            });
+
+            loginView.setVisible(true);
         });
     }
 }

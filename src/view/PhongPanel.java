@@ -20,46 +20,38 @@ import repository.IPhongRepository;
 
 public class PhongPanel extends JPanel {
 
-    // Các Repository để thao tác dữ liệu
     private IPhongRepository phongRepo;
     private IKhachHangRepository khachHangRepo;
     private IDichVuRepository dichVuRepo;
 
-    // Các thành phần giao diện chính
-    private JPanel roomCardsPanel; // Panel chứa các thẻ phòng
-    private DecimalFormat vndFormat; // Định dạng tiền tệ (ví dụ: 100.000 VND)
+    private JPanel roomCardsPanel;
+    private DecimalFormat vndFormat;
 
-    // --- ĐỊNH NGHĨA MÀU SẮC GIAO DIỆN ---
     private static final Color COLOR_BACKGROUND = MainForm.COLOR_BACKGROUND;
-    private static final Color COLOR_AVAILABLE_BG = new Color(240, 255, 240); // Xanh nhạt (Phòng trống)
-    private static final Color COLOR_RENTED_BG = new Color(255, 240, 240);    // Đỏ nhạt (Đã thuê)
+    private static final Color COLOR_AVAILABLE_BG = new Color(240, 255, 240);
+    private static final Color COLOR_RENTED_BG = new Color(255, 240, 240);
     private static final Color COLOR_BORDER = new Color(200, 200, 200);
-    private static final Color COLOR_BUTTON_AVAILABLE = new Color(46, 204, 113); // Nút Đặt phòng (Xanh lá)
-    private static final Color COLOR_BUTTON_RENTED = new Color(52, 152, 219);    // Nút Chi tiết (Xanh dương)
+    private static final Color COLOR_BUTTON_AVAILABLE = new Color(46, 204, 113);
+    private static final Color COLOR_BUTTON_RENTED = new Color(52, 152, 219);
 
-    // === CONSTRUCTOR ===
     public PhongPanel(IPhongRepository phongRepo, IKhachHangRepository khachHangRepo, IDichVuRepository dichVuRepo) {
         this.phongRepo = phongRepo;
         this.khachHangRepo = khachHangRepo;
         this.dichVuRepo = dichVuRepo;
 
-        // Cài đặt định dạng tiền tệ Việt Nam
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
         symbols.setGroupingSeparator('.');
         vndFormat = new DecimalFormat("###,### VND", symbols);
 
-        // Cấu hình layout chính
         setLayout(new BorderLayout(10, 10));
         setBackground(COLOR_BACKGROUND);
         setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        initComponents();   // Vẽ giao diện khung
-        loadPhongCards();   // Tải dữ liệu phòng từ DB lên giao diện
+        initComponents();
+        loadPhongCards();
     }
 
-    // === KHỞI TẠO CÁC THÀNH PHẦN GIAO DIỆN ===
     private void initComponents() {
-        // 1. Header (Tiêu đề và Nút làm mới)
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -70,7 +62,7 @@ public class PhongPanel extends JPanel {
 
         JButton btnRefresh = CustomStyler.createStyledButton("Làm Mới");
         btnRefresh.setPreferredSize(new Dimension(120, 40));
-        btnRefresh.addActionListener(e -> loadPhongCards()); // Sự kiện click nút Làm mới
+        btnRefresh.addActionListener(e -> loadPhongCards());
 
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         rightPanel.setOpaque(false);
@@ -79,80 +71,84 @@ public class PhongPanel extends JPanel {
 
         add(headerPanel, BorderLayout.NORTH);
 
-        // 2. Body (Khu vực chứa danh sách các thẻ phòng)
-        roomCardsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        // GridLayout 5 cột, tự động xuống dòng
+        roomCardsPanel = new JPanel(new GridLayout(0, 5, 15, 15));
         roomCardsPanel.setBackground(COLOR_BACKGROUND);
 
-        JScrollPane scrollPane = new JScrollPane(roomCardsPanel);
+        // Wrapper để tránh GridLayout bị kéo giãn
+        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        wrapperPanel.setBackground(COLOR_BACKGROUND);
+        wrapperPanel.add(roomCardsPanel, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(wrapperPanel);
         scrollPane.getViewport().setBackground(COLOR_BACKGROUND);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Tăng tốc độ cuộn chuột
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    // === TẢI DANH SÁCH PHÒNG TỪ DATABASE ===
     private void loadPhongCards() {
-        roomCardsPanel.removeAll(); // Xóa các thẻ cũ trước khi vẽ lại
+        roomCardsPanel.removeAll();
         List<Phong> danhSachPhong = phongRepo.getAll();
 
         if (danhSachPhong.isEmpty()) {
+            roomCardsPanel.setLayout(new BorderLayout());
             JLabel lblTrong = new JLabel("Chưa có phòng nào trong hệ thống.", SwingConstants.CENTER);
             lblTrong.setFont(new Font("Segoe UI", Font.ITALIC, 18));
-            roomCardsPanel.setLayout(new BorderLayout());
             roomCardsPanel.add(lblTrong, BorderLayout.CENTER);
         } else {
-            roomCardsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 15));
+            roomCardsPanel.setLayout(new GridLayout(0, 5, 15, 15));
             for (Phong phong : danhSachPhong) {
-                // Tạo thẻ giao diện cho từng phòng
+                // === QUAN TRỌNG: ẨN PHÒNG MENU ===
+                if (phong.getMaPhong().equalsIgnoreCase("MENU")) {
+                    continue;
+                }
+
                 JPanel card = createRoomCard(phong);
                 roomCardsPanel.add(card);
             }
         }
-        // Cập nhật lại giao diện sau khi thêm component
         roomCardsPanel.revalidate();
         roomCardsPanel.repaint();
     }
 
-    // === TẠO GIAO DIỆN CHO 1 THẺ PHÒNG (ROOM CARD) ===
     private JPanel createRoomCard(Phong phong) {
         JPanel card = new JPanel(new BorderLayout(5, 5));
         card.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(COLOR_BORDER, 1),
                 new EmptyBorder(10, 10, 10, 10)
         ));
-        card.setPreferredSize(new Dimension(220, 200));
+        card.setPreferredSize(new Dimension(200, 180));
 
-        // -- Phần trên: Mã phòng và Trạng thái --
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
 
         JLabel lblMaPhong = new JLabel(phong.getMaPhong());
-        lblMaPhong.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblMaPhong.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblMaPhong.setForeground(new Color(50, 50, 50));
 
         JLabel lblStatus = new JLabel("", SwingConstants.RIGHT);
-        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
         header.add(lblMaPhong, BorderLayout.WEST);
         header.add(lblStatus, BorderLayout.EAST);
         card.add(header, BorderLayout.NORTH);
 
-        // -- Phần giữa: Thông tin chi tiết --
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setOpaque(false);
         body.setBorder(new EmptyBorder(5, 0, 5, 0));
 
         JLabel lblLoai = new JLabel(phong.getLoaiPhong());
-        lblLoai.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        lblLoai.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
         JLabel lblGia = new JLabel(vndFormat.format(phong.getGiaPhong()));
-        lblGia.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblGia.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblGia.setForeground(MainForm.COLOR_PRIMARY);
 
         JLabel lblKhach = new JLabel(" ");
-        lblKhach.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        lblKhach.setFont(new Font("Segoe UI", Font.ITALIC, 12));
 
         body.add(lblLoai);
         body.add(Box.createVerticalStrut(5));
@@ -162,9 +158,8 @@ public class PhongPanel extends JPanel {
 
         card.add(body, BorderLayout.CENTER);
 
-        // -- Phần dưới: Nút hành động --
         JButton btnAction = new JButton();
-        btnAction.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnAction.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnAction.setForeground(Color.WHITE);
         btnAction.setFocusPainted(false);
         btnAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -174,13 +169,10 @@ public class PhongPanel extends JPanel {
         footer.add(btnAction);
         card.add(footer, BorderLayout.SOUTH);
 
-        // -- Xử lý logic hiển thị theo trạng thái phòng --
         if (phong.isTrangThai()) {
-            // Phòng ĐÃ THUÊ
             card.setBackground(COLOR_RENTED_BG);
-            lblStatus.setText("Đã Thuê");
+            lblStatus.setText("Đang Thuê");
             lblStatus.setForeground(Color.RED);
-
             btnAction.setText("Chi Tiết");
             btnAction.setBackground(COLOR_BUTTON_RENTED);
 
@@ -189,33 +181,23 @@ public class PhongPanel extends JPanel {
             } else {
                 lblKhach.setText("Khách: [Không rõ]");
             }
-
-            // Sự kiện: Xem chi tiết
             btnAction.addActionListener(e -> hienThiChiTietPhong(phong));
-
         } else {
-            // Phòng TRỐNG
             card.setBackground(COLOR_AVAILABLE_BG);
             lblStatus.setText("Trống");
             lblStatus.setForeground(COLOR_BUTTON_AVAILABLE);
-
             btnAction.setText("Đặt Phòng");
             btnAction.setBackground(COLOR_BUTTON_AVAILABLE);
-            lblKhach.setText(" "); // Giữ chỗ layout
-
-            // Sự kiện: Đặt phòng
+            lblKhach.setText(" ");
             btnAction.addActionListener(e -> datPhong(phong));
         }
-
         return card;
     }
 
-    // === CHỨC NĂNG 1: HIỂN THỊ CHI TIẾT & QUẢN LÝ DỊCH VỤ ===
     private void hienThiChiTietPhong(Phong phong) {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setPreferredSize(new Dimension(600, 400));
 
-        // 1. Thông tin khách hàng
         JPanel infoPanel = new JPanel(new GridLayout(4, 1));
         infoPanel.setBorder(BorderFactory.createTitledBorder("Thông Tin Phòng & Khách Hàng"));
 
@@ -229,13 +211,11 @@ public class PhongPanel extends JPanel {
 
         panel.add(infoPanel, BorderLayout.NORTH);
 
-        // 2. Bảng dịch vụ phòng này đang dùng
         String[] cols = {"Tên Dịch Vụ", "Đơn Giá"};
         DefaultTableModel tableModel = new DefaultTableModel(cols, 0);
         JTable table = new JTable(tableModel);
         CustomStyler.styleTable(table);
 
-        // Lọc dịch vụ từ DB: Chỉ lấy các dòng có MaPhong trùng với phòng này
         List<DichVu> allServices = dichVuRepo.getAll();
         double tongTienDichVu = 0;
 
@@ -252,7 +232,6 @@ public class PhongPanel extends JPanel {
 
         panel.add(tablePanel, BorderLayout.CENTER);
 
-        // 3. Nút thêm dịch vụ
         JButton btnAddService = CustomStyler.createStyledButton("Thêm Dịch Vụ Mới");
         btnAddService.addActionListener(e -> themDichVuVaoPhong(phong, tableModel));
 
@@ -263,9 +242,7 @@ public class PhongPanel extends JPanel {
         JOptionPane.showMessageDialog(this, panel, "Chi Tiết Phòng " + phong.getMaPhong(), JOptionPane.PLAIN_MESSAGE);
     }
 
-    // === CHỨC NĂNG 2: THÊM DỊCH VỤ (Sao chép từ Menu sang Phòng) ===
     private void themDichVuVaoPhong(Phong phong, DefaultTableModel tableModel) {
-        // B1: Lấy danh sách Menu (những món có MaPhong = "MENU")
         List<DichVu> allServices = dichVuRepo.getAll();
         List<DichVu> menuList = new ArrayList<>();
 
@@ -276,11 +253,10 @@ public class PhongPanel extends JPanel {
         }
 
         if (menuList.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Chưa có món nào trong Menu (Tab Dịch Vụ)!");
+            JOptionPane.showMessageDialog(this, "Chưa có dịch vụ!");
             return;
         }
 
-        // B2: Hiển thị ComboBox cho người dùng chọn
         JComboBox<DichVu> combo = new JComboBox<>(menuList.toArray(new DichVu[0]));
         combo.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -299,18 +275,14 @@ public class PhongPanel extends JPanel {
         if (result == JOptionPane.OK_OPTION) {
             DichVu selectedMenu = (DichVu) combo.getSelectedItem();
             if (selectedMenu != null) {
-                // B3: TẠO BẢN SAO (QUAN TRỌNG)
-                // Tạo một đối tượng Dịch Vụ MỚI, chép tên và giá từ Menu, nhưng gán vào Phòng hiện tại
                 DichVu dichVuMoi = new DichVu(
                         selectedMenu.getTenDV(),
                         selectedMenu.getGiaDV(),
                         phong.getMaPhong()
                 );
 
-                // Lưu bản sao này vào DB
                 if (dichVuRepo.add(dichVuMoi)) {
                     JOptionPane.showMessageDialog(this, "Đã thêm: " + dichVuMoi.getTenDV());
-                    // Cập nhật bảng hiển thị ngay lập tức
                     tableModel.addRow(new Object[]{dichVuMoi.getTenDV(), vndFormat.format(dichVuMoi.getGiaDV())});
                 } else {
                     JOptionPane.showMessageDialog(this, "Lỗi thêm dịch vụ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -319,7 +291,6 @@ public class PhongPanel extends JPanel {
         }
     }
 
-    // === CHỨC NĂNG 3: ĐẶT PHÒNG ===
     private void datPhong(Phong phong) {
         List<KhachHang> dsKhach = khachHangRepo.getAll();
         if (dsKhach.isEmpty()) {
@@ -327,7 +298,6 @@ public class PhongPanel extends JPanel {
             return;
         }
 
-        // Tạo ComboBox chọn khách
         JComboBox<KhachHang> cbKhach = new JComboBox<>(dsKhach.toArray(new KhachHang[0]));
         cbKhach.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -350,13 +320,12 @@ public class PhongPanel extends JPanel {
         if (result == JOptionPane.OK_OPTION) {
             KhachHang khach = (KhachHang) cbKhach.getSelectedItem();
             if (khach != null) {
-                // Cập nhật trạng thái phòng
                 phong.setTrangThai(true);
                 phong.setKhachThue(khach);
 
                 if (phongRepo.update(phong)) {
                     JOptionPane.showMessageDialog(this, "Đặt phòng thành công!");
-                    loadPhongCards(); // Tải lại giao diện
+                    loadPhongCards();
                 } else {
                     JOptionPane.showMessageDialog(this, "Lỗi lưu dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
