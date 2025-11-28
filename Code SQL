@@ -1,0 +1,65 @@
+- Bước 1: Tạo Cơ sở dữ liệu
+CREATE DATABASE QuanLyKhachSan;
+USE QuanLyKhachSan;
+- Bước 2: Tạo các bảng "Cha"
+Bảng nhanvien
+CREATE TABLE nhanvien (
+    MaNV VARCHAR(10) NOT NULL,
+    Ten VARCHAR(100) NOT NULL,
+    SoCMND VARCHAR(12),
+    SoDienThoai VARCHAR(15), -- Ước lượng độ dài chuẩn
+    ChucVu VARCHAR(50),
+    LuongCoBan DECIMAL(18, 2),
+    PRIMARY KEY (MaNV)
+);
+Bảng khachhang
+CREATE TABLE khachhang (
+    MaKH VARCHAR(10) NOT NULL,
+    Ten VARCHAR(100) NOT NULL,
+    SoCMND VARCHAR(12),
+    SoDienThoai VARCHAR(15), -- Ước lượng độ dài chuẩn
+    Email VARCHAR(100),
+    PRIMARY KEY (MaKH)
+);
+Bảng phong
+CREATE TABLE phong (
+    MaPhong VARCHAR(20) NOT NULL,
+    LoaiPhong VARCHAR(50),
+    GiaPhong DECIMAL(18, 2),
+    TrangThai BIT(1), -- 1: Đã thuê/Bận, 0: Trống
+    MaKH VARCHAR(10), -- Khóa ngoại trỏ đến khachhang
+    PRIMARY KEY (MaPhong),
+    FOREIGN KEY (MaKH) REFERENCES khachhang(MaKH)
+);
+Bảng dichvu
+CREATE TABLE dichvu (
+    MaDV INT AUTO_INCREMENT NOT NULL,
+    TenDV VARCHAR(100),
+    GiaDV DECIMAL(18, 2),
+    MaPhong VARCHAR(20), -- Khóa ngoại trỏ đến phong
+    PRIMARY KEY (MaDV),
+    FOREIGN KEY (MaPhong) REFERENCES phong(MaPhong)
+);
+Bảng thanhtoan
+CREATE TABLE thanhtoan (
+    MaThanhToan INT AUTO_INCREMENT NOT NULL,
+    MaKH VARCHAR(10),      -- FK
+    MaPhong VARCHAR(20),   -- FK
+    SoTien DECIMAL(18, 2),
+    ThoiGian DATETIME,
+    MaNV VARCHAR(10),      -- FK
+    PRIMARY KEY (MaThanhToan),
+    FOREIGN KEY (MaKH) REFERENCES khachhang(MaKH),
+    FOREIGN KEY (MaPhong) REFERENCES phong(MaPhong),
+    FOREIGN KEY (MaNV) REFERENCES nhanvien(MaNV)
+);
+Bảng doanhthu
+CREATE TABLE doanhthu (
+    MaHD INT AUTO_INCREMENT NOT NULL,
+    MaPhong VARCHAR(20), -- Lưu ý: Trong hình ghi VARCHAR(10) nhưng bảng Phong gốc là 20, nên để 20 cho khớp
+    TenKhach VARCHAR(100),
+    SoTien DOUBLE,
+    NgayThanhToan DATETIME,
+    ChiTietDichVu TEXT,
+    PRIMARY KEY (MaHD)
+);
